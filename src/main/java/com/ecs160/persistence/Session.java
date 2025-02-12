@@ -39,13 +39,14 @@ public class Session {
                 System.out.println("The class " + objClass.getName() + " isn't persistable");
                 continue;
             }
-            Object id;
-            Map<String, Object> objectMap = new HashMap<>(); //holds field name and value as a pair
+            String id = null;
+            Map<String, String> objectMap = new HashMap<>(); //holds field name and value as a pair
+            // loops over the class' fields
             for(Field field : objClass.getDeclaredFields()) {
                 field.setAccessible(true);
                 if(field.isAnnotationPresent(PersistableId.class)) {
                     try {
-                        id = field.get(obj);
+                        id = field.get(obj).toString();
                     } catch (IllegalAccessException e) {
                         System.out.println("Can't access " + field.getName() + "'s value");
                         e.printStackTrace();
@@ -55,7 +56,7 @@ public class Session {
 
                     String fieldName = field.getName();
                     try {
-                        Object fieldValue = field.get(obj);
+                        String fieldValue = field.get(obj).toString();
                         objectMap.put(fieldName, fieldValue);
                     } catch(IllegalAccessException e) {
                         System.out.println("Can't access " + fieldName + "'s value");
@@ -68,6 +69,8 @@ public class Session {
                     String className = annot.className(); // name of class stored in annotation's className
                     try {
                         List fieldList = (List) field.get(objClass);
+                        String fieldListName = field.getName();
+                        // loops over all elements in the list
                         for (int j =0; j < fieldList.size(); j++) {
                             Object eleObj = fieldList.get(i); // the class of object in the list
                             Class eleObjClass = eleObj.getClass();
@@ -75,17 +78,22 @@ public class Session {
                                 System.out.println("The class " + objClass.getName() + " isn't persistable");
                                 continue;
                             }
+                            Map<String, String> eleObjMap = new HashMap<>();
+                            String eleId = null;
+                            // loops over the fields in the element
                             for (Field eleField : eleObjClass.getDeclaredFields()) {
                                 eleField.setAccessible(true);
+
                                 if(eleField.isAnnotationPresent(PersistableId.class)) {
                                     try {
-                                        Object eleId = eleField.get(eleObj);
+                                        Object extractedId = eleField.get(eleObj);
                                         if(idString.equals("")) {
-                                            idString += eleId.toString();
+                                            idString += extractedId.toString();
                                         } else {
-                                            String idAddition = ", " + eleId.toString();
+                                            String idAddition = ", " + extractedId.toString();
                                             idString += idAddition;
                                         }
+                                        eleId = extractedId.toString();
                                     }catch (IllegalAccessException e) {
                                         System.out.println("Can't access " + eleField.getName() + "'s value");
                                         e.printStackTrace();
@@ -93,21 +101,32 @@ public class Session {
                                 } else if (eleField.isAnnotationPresent(PersistableField.class)) {
                                     String eleFieldName = eleField.getName();
                                     try {
-                                        eleField.get(eleObj);
+                                        Object eleFieldValue = eleField.get(eleObj);
+                                        eleObjMap.put(eleFieldName, eleFieldValue.toString());
 
-                                    }catch(IllegalAccessException e) {
+                                    } catch(IllegalAccessException e) {
                                         System.out.println("Can't access " + eleFieldName + "'s value");
                                         e.printStackTrace();
                                         objectMap.put(eleFieldName, "");
                                     }
                                 }
                             }
+                            if (eleId != null) {
+                                jedisSession.hset(eleId, eleObjMap);
+                            } else {
+                                System.out.println("Missing eleId");
+                            }
                         }
+                        objectMap.put(fieldListName, idString);
                     } catch (IllegalAccessException e) {
                         e.printStackTrace();
                     }
-
                 }
+            }
+            if(id != null) {
+                jedisSession.hset(id, objectMap);
+            } else {
+                System.out.print("Object is missing ID");
             }
 
         }
