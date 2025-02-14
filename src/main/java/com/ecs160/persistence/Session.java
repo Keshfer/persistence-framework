@@ -21,7 +21,7 @@ public class Session {
 
     private Jedis jedisSession;
     private List<Object> objList = new ArrayList<>(); //List
-    private Session() {
+    public Session() {
         jedisSession = new Jedis("localhost", 6379);
     }
 

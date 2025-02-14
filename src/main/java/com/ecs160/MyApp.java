@@ -7,20 +7,21 @@ import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.ecs160.persistence.Session;
 import com.google.gson.*;
 
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.Set;
 
 public class MyApp {
     public static void main(String[] args) throws FileNotFoundException, URISyntaxException, NoSuchFieldException {
+        Session session = new Session();
 
         //absolute filepath to your json file
         //String filepath = "/Users/georgeburin/persistence-framework/src/main/resources/input.json";
         String filepath = "src/main/resources/input.json";
 
-        // list to keep all of the posts from the input.json file
-        List<Post> allPosts = new ArrayList<>();
 
         try (FileReader reader = new FileReader(filepath)) {
             //read the file into JsonObject using gson library
@@ -68,7 +69,7 @@ public class MyApp {
 
                         String replyText = replyRecord.get("text").getAsString();
                         Post replyPost = new Post(postId,replyText, new ArrayList<>());
-                        allPosts.add(replyPost);
+                        session.add(replyPost);
                         repliesIDs.add(postId);
                         postId+=1;
                     }
@@ -76,14 +77,13 @@ public class MyApp {
 
                 //add the root post to the list
                 Post rootPost = new Post(postId,text,repliesIDs);
-                allPosts.add(rootPost);
+                session.add(rootPost);
                 postId+=1;
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-        System.out.println("number of posts in the list:" + allPosts.size());
+        
 
 
 
