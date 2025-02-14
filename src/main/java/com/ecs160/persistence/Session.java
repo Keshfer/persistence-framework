@@ -151,11 +151,13 @@ public class Session {
         for (Field field : objClass.getDeclaredFields()) {
             if(field.isAnnotationPresent(PersistableId.class)) {
                 String fieldName = field.getName();
+                String fieldValue;
                 if(map != null) {
-                    map.get(fieldName);
+                    fieldValue = map.get(fieldName);
                 } else {
                     System.out.println("Nothing retrieved from Redis database");
                 }
+
 
             }
         }
