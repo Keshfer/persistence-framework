@@ -1,17 +1,11 @@
 package com.ecs160.persistence;
 
-import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javassist.util.proxy.MethodHandler;
-import javassist.util.proxy.ProxyFactory;
 import redis.clients.jedis.Jedis;
 
 
@@ -34,7 +28,7 @@ public class Session {
     public void persistAll()  {
         for(int i =0; i < objList.size(); i++) {
             Object obj = objList.get(i);
-            Class objClass = obj.getClass();
+            Class<?> objClass = obj.getClass();
             if(!objClass.isAnnotationPresent((Persistable.class))) {
                 System.out.println("The class " + objClass.getName() + " isn't persistable");
                 continue;
@@ -73,7 +67,7 @@ public class Session {
                         // loops over all elements in the list
                         for (int j =0; j < fieldList.size(); j++) {
                             Object eleObj = fieldList.get(i); // the class of object in the list
-                            Class eleObjClass = eleObj.getClass();
+                            Class<?> eleObjClass = eleObj.getClass();
                             if(!eleObjClass.isAnnotationPresent((Persistable.class))) {
                                 System.out.println("The class " + objClass.getName() + " isn't persistable");
                                 continue;
@@ -136,6 +130,35 @@ public class Session {
 
 
     public Object load(Object object)  {
+        // object should only have @PersistableId field filled out
+        Class<?> objClass = object.getClass();
+        Map<String, String> map = null;
+        //search for the id field
+        for (Field field : objClass.getDeclaredFields()) {
+            String fieldName = field.getName();
+            if(field.isAnnotationPresent(PersistableId.class)) {
+                try {
+                    String fieldObj = field.get(object).toString();
+                    map = jedisSession.hgetAll(fieldObj);
+
+                } catch (IllegalAccessException e) {
+                    System.out.println("Can't access " + fieldName + "'s value");
+                    e.printStackTrace();
+                }
+            }
+        }
+        //fill in the @PersistableField fields of object
+        for (Field field : objClass.getDeclaredFields()) {
+            if(field.isAnnotationPresent(PersistableId.class)) {
+                String fieldName = field.getName();
+                if(map != null) {
+                    map.get(fieldName);
+                } else {
+                    System.out.println("Nothing retrieved from Redis database");
+                }
+
+            }
+        }
         return null;
     }
 
