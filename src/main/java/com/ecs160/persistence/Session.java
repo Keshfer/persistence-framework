@@ -147,17 +147,27 @@ public class Session {
                 }
             }
         }
+        if(map == null) {
+            System.out.println("Nothing retrieved from Redis database");
+            return null;
+        }
         //fill in the @PersistableField fields of object
         for (Field field : objClass.getDeclaredFields()) {
-            if(field.isAnnotationPresent(PersistableId.class)) {
-                String fieldName = field.getName();
-                String fieldValue;
-                if(map != null) {
-                    fieldValue = map.get(fieldName);
-                } else {
-                    System.out.println("Nothing retrieved from Redis database");
+            String fieldName = field.getName();
+            if(field.isAnnotationPresent(PersistableField.class)) {
+                String fieldValue = map.get(fieldName);
+                try {
+                    if(fieldValue != null) {
+                        field.set(object, fieldValue);
+                    }
+
+                } catch (IllegalAccessException e) {
+                    System.out.println("Can't add value to " + fieldName);
+                    e.printStackTrace();
                 }
 
+            } else if (field.isAnnotationPresent(PersistableListField.class)) {
+                String fieldValue = map.get(fieldName); // this should be the string of reply ids
 
             }
         }
