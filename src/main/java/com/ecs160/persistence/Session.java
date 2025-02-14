@@ -20,7 +20,7 @@ import redis.clients.jedis.Jedis;
 public class Session {
 
     private Jedis jedisSession;
-    private List<Object> objList = new ArrayList<>();
+    private List<Object> objList = new ArrayList<>(); //List
     private Session() {
         jedisSession = new Jedis("localhost", 6379);
     }
