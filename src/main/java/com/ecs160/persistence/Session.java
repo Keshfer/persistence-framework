@@ -1,17 +1,11 @@
 package com.ecs160.persistence;
 
-import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javassist.util.proxy.MethodHandler;
-import javassist.util.proxy.ProxyFactory;
 import redis.clients.jedis.Jedis;
 
 
@@ -32,15 +26,19 @@ public class Session {
 
 
     public void persistAll()  {
+        //for each object in the objects list
         for(int i =0; i < objList.size(); i++) {
             Object obj = objList.get(i);
-            Class objClass = obj.getClass();
+            Class<?> objClass = obj.getClass();
+
             if(!objClass.isAnnotationPresent((Persistable.class))) {
                 System.out.println("The class " + objClass.getName() + " isn't persistable");
                 continue;
             }
+
             String id = null;
             Map<String, String> objectMap = new HashMap<>(); //holds field name and value as a pair
+
             // loops over the class' fields
             for(Field field : objClass.getDeclaredFields()) {
                 field.setAccessible(true);
@@ -51,9 +49,9 @@ public class Session {
                         System.out.println("Can't access " + field.getName() + "'s value");
                         e.printStackTrace();
                     }
+
                 } else if(field.isAnnotationPresent(PersistableField.class)) {
                     //put field key and value into object map
-
                     String fieldName = field.getName();
                     try {
                         String fieldValue = field.get(obj).toString();
@@ -63,21 +61,28 @@ public class Session {
                         e.printStackTrace();
                         objectMap.put(fieldName, "");
                     }
+
                 } else if (field.isAnnotationPresent(PersistableListField.class)) {
                     String idString = ""; // holds IDs of child posts
                     PersistableListField annot = field.getAnnotation(PersistableListField.class);
                     String className = annot.className(); // name of class stored in annotation's className
                     try {
-                        List fieldList = (List) field.get(objClass);
+                        List<?> fieldList = (List<?>) field.get(obj);
                         String fieldListName = field.getName();
+
+                        //System.out.println(fieldList.size());
+
                         // loops over all elements in the list
                         for (int j =0; j < fieldList.size(); j++) {
-                            Object eleObj = fieldList.get(i); // the class of object in the list
-                            Class eleObjClass = eleObj.getClass();
+                            Object eleObj = fieldList.get(j); // the class of object in the list
+                            Class<?> eleObjClass = eleObj.getClass();
+
                             if(!eleObjClass.isAnnotationPresent((Persistable.class))) {
                                 System.out.println("The class " + objClass.getName() + " isn't persistable");
                                 continue;
                             }
+
+
                             Map<String, String> eleObjMap = new HashMap<>();
                             String eleId = null;
                             // loops over the fields in the element

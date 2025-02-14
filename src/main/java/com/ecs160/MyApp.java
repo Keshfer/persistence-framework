@@ -40,7 +40,7 @@ public class MyApp {
 
                 // Check if "thread" exists and is not null
                 if (thread == null) {
-                    System.out.println("Skipping because missing 'thread'");
+                    //System.out.println("Skipping because missing 'thread'");
                     continue; // Skip this and move to the next one
                 }
 
@@ -51,26 +51,23 @@ public class MyApp {
                 String text = record.get("text").getAsString();
                 //String createdAt = record.get("createdAt").getAsString(); //for the future if needed
 
+
+
                 //add all of the replies posts first, but keep track of the ids of the posts
                 JsonArray replies = thread.getAsJsonArray("replies");
-                List<Integer> repliesIDs = new ArrayList<>();
+                List<Post> repliesIDs = new ArrayList<>();
                 if (replies != null) {
                     for (JsonElement replyElement : replies) {
-                        JsonObject reply = replyElement.getAsJsonObject();
-                        JsonObject replyRecord = reply.getAsJsonObject("record");
-
                         // Extract reply text:
+                        JsonObject reply = replyElement.getAsJsonObject();
+                        JsonObject replyPost = reply.getAsJsonObject("post");
+                        JsonObject replypostrecord = replyPost.getAsJsonObject().getAsJsonObject("record");
+                        String replyText = replypostrecord.get("text").getAsString();
 
-                        // Check if "record" exists and is not null
-                        if (!reply.has("record") || reply.get("record").isJsonNull()) {
-                            System.out.println("Skipping reply with missing 'record'");
-                            continue; // Skip this reply and move to the next one
-                        }
 
-                        String replyText = replyRecord.get("text").getAsString();
-                        Post replyPost = new Post(postId,replyText, new ArrayList<>());
-                        session.add(replyPost);
-                        repliesIDs.add(postId);
+                        Post replyObject = new Post(postId,replyText, new ArrayList<>());
+                        session.add(replyObject);
+                        repliesIDs.add(replyObject);
                         postId+=1;
                     }
                 }
