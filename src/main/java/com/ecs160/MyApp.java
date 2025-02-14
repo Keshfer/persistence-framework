@@ -83,7 +83,8 @@ public class MyApp {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        
+
+        session.persistAll();
 
 
 
