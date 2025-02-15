@@ -1,6 +1,8 @@
 package com.ecs160.persistence;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -63,9 +65,8 @@ public class Session {
                     }
 
                 } else if (field.isAnnotationPresent(PersistableListField.class)) {
-                    String idString = ""; // holds IDs of child posts
-                    PersistableListField annot = field.getAnnotation(PersistableListField.class);
-                    String className = annot.className(); // name of class stored in annotation's className
+                    StringBuilder idString = new StringBuilder(); // holds IDs of child posts
+
                     try {
                         List<?> fieldList = (List<?>) field.get(obj);
                         String fieldListName = field.getName();
@@ -74,8 +75,8 @@ public class Session {
 
                         // loops over all elements in the list
                         for (int j =0; j < fieldList.size(); j++) {
-                            Object eleObj = fieldList.get(j); // the class of object in the list
-                            Class<?> eleObjClass = eleObj.getClass();
+                            Object eleObj = fieldList.get(j);
+                            Class<?> eleObjClass = eleObj.getClass(); // the class of object in the list
 
                             if(!eleObjClass.isAnnotationPresent((Persistable.class))) {
                                 System.out.println("The class " + objClass.getName() + " isn't persistable");
@@ -92,11 +93,11 @@ public class Session {
                                 if(eleField.isAnnotationPresent(PersistableId.class)) {
                                     try {
                                         Object extractedId = eleField.get(eleObj);
-                                        if(idString.equals("")) {
-                                            idString += extractedId.toString();
+                                        if(idString.toString().isEmpty()) {
+                                            idString.append(extractedId.toString());
                                         } else {
-                                            String idAddition = ", " + extractedId.toString();
-                                            idString += idAddition;
+                                            String idAddition = "," + extractedId.toString();
+                                            idString.append(idAddition);
                                         }
                                         eleId = extractedId.toString();
                                     }catch (IllegalAccessException e) {
@@ -122,7 +123,7 @@ public class Session {
                                 System.out.println("Missing eleId");
                             }
                         }
-                        objectMap.put(fieldListName, idString);
+                        objectMap.put(fieldListName, idString.toString());
                     } catch (IllegalAccessException e) {
                         e.printStackTrace();
                     }
@@ -138,8 +139,98 @@ public class Session {
 
 
     }
-    
+
     public Object load(Object object)  {
+        // object should only have @PersistableId field filled out
+        Class<?> objClass = object.getClass();
+        Map<String, String> map = null;
+        //search for the id field
+        for (Field field : objClass.getDeclaredFields()) {
+            String fieldName = field.getName();
+            if(field.isAnnotationPresent(PersistableId.class)) {
+                try {
+                    String fieldObj = field.get(object).toString();
+                    map = jedisSession.hgetAll(fieldObj);
+                    break;
+
+                } catch (IllegalAccessException e) {
+                    System.out.println("Can't access " + fieldName + "'s value");
+                    e.printStackTrace();
+                }
+            }
+        }
+        if(map == null) {
+            System.out.println("Nothing retrieved from Redis database");
+            return null;
+        }
+        //fill in the @PersistableField fields of object
+        for (Field field : objClass.getDeclaredFields()) {
+            String fieldName = field.getName();
+            if(field.isAnnotationPresent(PersistableField.class)) {
+                String fieldValue = map.get(fieldName);
+                try {
+                    if(fieldValue != null) {
+                        field.setAccessible(true);
+                        field.set(object, fieldValue);
+                    }
+
+                } catch (IllegalAccessException e) {
+                    System.out.println("Can't add value to " + fieldName);
+                    e.printStackTrace();
+                }
+
+            } else if (field.isAnnotationPresent(PersistableListField.class)) {
+                String fieldValue = map.get(fieldName); // this should be the string of reply ids
+                String[] replyIds = fieldValue.split(",");
+                PersistableListField annot = field.getAnnotation(PersistableListField.class);
+                String className = annot.className(); // name of class stored in annotation's className
+                List<?> childList = new ArrayList<>();
+                Constructor[] objConstructs = objClass.getConstructors();
+                Constructor zeroConstruct = null; // This will hold the constructor that takes 0 arguements
+                for (Constructor con : objConstructs) {
+                    zeroConstruct = con;
+                    if (zeroConstruct.getGenericParameterTypes().length == 0) {
+                        break; // we found the 0 arg constructor
+                    }
+                }
+                if(zeroConstruct == null) {
+                    System.out.println("zeroConstruct is null");
+                    System.out.println("Skipping this persistable list field");
+                    continue;
+                }
+
+                for(String replyId : replyIds) {
+                    jedisSession.hgetAll(replyId);
+                    Object childObj = null;
+                    try {
+                        zeroConstruct.setAccessible(true);
+                        childObj = zeroConstruct.newInstance();
+                    } catch (InvocationTargetException e) {
+                        System.out.println("InvocationTarget error occurred while instantiating");
+                        System.out.println("Skipping this persistable list field");
+                        e.printStackTrace();
+                        continue;
+                    } catch (InstantiationException e) {
+                        System.out.println("Can't instantiate");
+                        System.out.println("Skipping this persistable list field");
+                        e.printStackTrace();
+                        continue;
+                    } catch (IllegalAccessException e) {
+                        System.out.println("Can't access constructor");
+                        System.out.println("Skipping this persistable list field");
+                        e.printStackTrace();
+                        continue;
+                    }
+                    // at this point, childObj is instantiated
+                    Class<?> childObjClass = childObj.getClass();
+                    for(Field childField : childObjClass.getDeclaredFields()) {
+                        if(childField.isAnnotationPresent(PersistableId.class)) {
+                            
+                        }
+                    }
+                }
+            }
+        }
         return null;
     }
 
