@@ -10,7 +10,7 @@ import java.util.List;
 @Persistable
 public class Post {
     @PersistableId
-    private int postId; //id of the post
+    private Integer postId; //id of the post
     @PersistableField
     private String postContent; // text of the post
     @PersistableListField(className = "Post")
@@ -21,8 +21,14 @@ public class Post {
         this.postContent = postContent;
         this.replies = replies;
     }
+    Post () {
+        this.postId = null;
+        this.postContent = null;
+        this.replies = null;
 
-    public int getPostId() {
+    }
+
+    public Integer getPostId() {
         return postId;
     }
 
