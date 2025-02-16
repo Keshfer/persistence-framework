@@ -171,7 +171,12 @@ public class Session {
                 try {
                     if(fieldValue != null) {
                         field.setAccessible(true);
-                        field.set(object, fieldValue);
+                        if(field.getType().equals(Integer.class)) {
+                            field.set(object, Integer.valueOf(fieldValue));
+                        } else {
+                            //field is of String type
+                            field.set(object, fieldValue);
+                        }
                     }
 
                 } catch (IllegalAccessException e) {
@@ -181,10 +186,10 @@ public class Session {
 
             } else if (field.isAnnotationPresent(PersistableListField.class)) {
                 String fieldValue = map.get(fieldName); // this should be the string of reply ids
-                String[] replyIds = fieldValue.split(",");
-                PersistableListField annot = field.getAnnotation(PersistableListField.class);
-                String className = annot.className(); // name of class stored in annotation's className
-                List<?> childList = new ArrayList<>();
+                String[] childIds = fieldValue.split(",");
+                //PersistableListField annot = field.getAnnotation(PersistableListField.class);
+                //String className = annot.className(); // name of class stored in annotation's className
+                List<Object> childList = new ArrayList<>();
                 Constructor[] objConstructs = objClass.getConstructors();
                 Constructor zeroConstruct = null; // This will hold the constructor that takes 0 arguements
                 for (Constructor con : objConstructs) {
@@ -199,25 +204,25 @@ public class Session {
                     continue;
                 }
 
-                for(String replyId : replyIds) {
-                    jedisSession.hgetAll(replyId);
+                for(String childId : childIds) {
+                    Map<String, String> childMap = jedisSession.hgetAll(childId);
                     Object childObj = null;
                     try {
                         zeroConstruct.setAccessible(true);
                         childObj = zeroConstruct.newInstance();
                     } catch (InvocationTargetException e) {
                         System.out.println("InvocationTarget error occurred while instantiating");
-                        System.out.println("Skipping this persistable list field");
+                        System.out.println("Skipping this childId");
                         e.printStackTrace();
                         continue;
                     } catch (InstantiationException e) {
                         System.out.println("Can't instantiate");
-                        System.out.println("Skipping this persistable list field");
+                        System.out.println("Skipping this childId");
                         e.printStackTrace();
                         continue;
                     } catch (IllegalAccessException e) {
                         System.out.println("Can't access constructor");
-                        System.out.println("Skipping this persistable list field");
+                        System.out.println("Skipping this childId");
                         e.printStackTrace();
                         continue;
                     }
@@ -225,13 +230,44 @@ public class Session {
                     Class<?> childObjClass = childObj.getClass();
                     for(Field childField : childObjClass.getDeclaredFields()) {
                         if(childField.isAnnotationPresent(PersistableId.class)) {
-                            
+                            childField.setAccessible(true);
+                            try {
+                                childField.set(childObj, Integer.parseInt(childId));
+                            } catch (IllegalAccessException e) {
+                                System.out.println("Can't set childField: " + childField.getName() + " with " + childId);
+                                e.printStackTrace();
+                            }
+                        } else if (childField.isAnnotationPresent(PersistableField.class)) {
+                            childField.setAccessible(true);
+                            String childFieldName = childField.getName();
+                            String childFieldValue = childMap.get(childFieldName);
+                            try {
+                                if (childField.getType().equals(Integer.class)) {
+                                    childField.set(childObj, Integer.parseInt(childFieldValue));
+                                } else {
+                                    //childField is a String type
+                                    childField.set(childObj, childFieldValue);
+                                }
+                            } catch (IllegalAccessException e) {
+                                System.out.println("Can't set childField: " + childFieldName + " with " + childFieldValue);
+                                e.printStackTrace();
+                            }
                         }
                     }
+                    // childObj has been populated. Put it in the childList
+                    childList.add(childObj);
+                }
+                //all child objects are in the list. Attach the list to the persistable list field
+                field.setAccessible(true);
+                try {
+                    field.set(object, childList);
+                } catch (IllegalAccessException e) {
+                    System.out.println("Can't set field: " + fieldName + " with childList of type " + childList.getClass());
+                    e.printStackTrace();
                 }
             }
         }
-        return null;
+        return object;
     }
 
 }
