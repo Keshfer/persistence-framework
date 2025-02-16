@@ -16,12 +16,12 @@ public class Post {
     @PersistableListField(className = "Post")
     private List<Post> replies; // list of post ids that are replies to this post
 
-    Post (int postId, String postContent, List<Post> replies){
+    public Post (int postId, String postContent, List<Post> replies){
         this.postId = postId;
         this.postContent = postContent;
         this.replies = replies;
     }
-    Post () {
+    public Post () {
         this.postId = null;
         this.postContent = null;
         this.replies = null;
@@ -30,6 +30,10 @@ public class Post {
 
     public Integer getPostId() {
         return postId;
+    }
+
+    public void setPostId(int id) {
+        this.postId = id;
     }
 
     public String getPostContent() {

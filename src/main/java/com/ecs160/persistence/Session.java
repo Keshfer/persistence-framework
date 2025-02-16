@@ -149,6 +149,7 @@ public class Session {
             String fieldName = field.getName();
             if(field.isAnnotationPresent(PersistableId.class)) {
                 try {
+                    field.setAccessible(true);
                     String fieldObj = field.get(object).toString();
                     map = jedisSession.hgetAll(fieldObj);
                     break;
@@ -186,7 +187,10 @@ public class Session {
 
             } else if (field.isAnnotationPresent(PersistableListField.class)) {
                 String fieldValue = map.get(fieldName); // this should be the string of reply ids
-                String[] childIds = fieldValue.split(",");
+                String[] childIds = null;
+                if (!fieldValue.isEmpty()) {
+                    childIds = fieldValue.split(",");
+                }
                 //PersistableListField annot = field.getAnnotation(PersistableListField.class);
                 //String className = annot.className(); // name of class stored in annotation's className
                 List<Object> childList = new ArrayList<>();
@@ -203,7 +207,10 @@ public class Session {
                     System.out.println("Skipping this persistable list field");
                     continue;
                 }
-
+                if(childIds == null) {
+                    System.out.println("There are no replies ");
+                    continue;
+                }
                 for(String childId : childIds) {
                     Map<String, String> childMap = jedisSession.hgetAll(childId);
                     Object childObj = null;

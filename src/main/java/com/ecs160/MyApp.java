@@ -2,17 +2,10 @@ package com.ecs160;
 
 
 import java.io.FileNotFoundException;
-import java.lang.reflect.InvocationTargetException;
 import java.net.URISyntaxException;
-import java.util.ArrayList;
 import java.util.List;
 
 import com.ecs160.persistence.Session;
-import com.google.gson.*;
-
-import java.io.FileReader;
-import java.io.IOException;
-import java.util.Set;
 
 public class MyApp {
     public static void main(String[] args) throws FileNotFoundException, URISyntaxException, NoSuchFieldException {
@@ -35,6 +28,24 @@ public class MyApp {
         }
 
         session.persistAll();
+
+        Post fetchPost = new Post();
+        fetchPost.setPostId(4);
+        session.load(fetchPost);
+        // fetchPost should be populated
+        System.out.println("Printing post of id " + fetchPost.getPostId());
+        System.out.println("Post content: " + fetchPost.getPostContent());
+        System.out.println("replies:");
+        List<Post> replyList = fetchPost.getReplies();
+        if(replyList == null) {
+            System.out.println("No replies");
+        } else {
+            for (Post reply : replyList) {
+                System.out.println("\treply ID: " + reply.getPostId());
+                System.out.println("\treply content: " + reply.getPostContent());
+            }
+        }
+
 
 
 
