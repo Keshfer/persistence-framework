@@ -4,6 +4,7 @@ package com.ecs160;
 import java.io.FileNotFoundException;
 import java.net.URISyntaxException;
 import java.util.List;
+import java.util.Scanner;
 
 import com.ecs160.persistence.Session;
 
@@ -29,23 +30,35 @@ public class MyApp {
 
         session.persistAll();
 
-        Post fetchPost = new Post();
-        fetchPost.setPostId(4);
-        session.load(fetchPost);
-        // fetchPost should be populated
-        System.out.println("Printing post of id " + fetchPost.getPostId());
-        System.out.println("Post content: " + fetchPost.getPostContent());
-        System.out.println("replies:");
-        List<Post> replyList = fetchPost.getReplies();
-        if(replyList == null) {
-            System.out.println("No replies");
-        } else {
-            for (Post reply : replyList) {
-                System.out.println("\treply ID: " + reply.getPostId());
-                System.out.println("\treply content: " + reply.getPostContent());
+        Scanner scanner = new Scanner(System.in);
+
+        while (true) {
+            System.out.print("Enter the ID: (0 to quit)");
+            int id = Integer.parseInt(scanner.nextLine());
+
+            if (id==0){
+                break;
+            }
+
+            Post fetchPost = new Post();
+            fetchPost.setPostId(id);
+            session.load(fetchPost);
+            // fetchPost should be populated
+            System.out.println("Printing post of id " + fetchPost.getPostId());
+            System.out.println("Post content: " + fetchPost.getPostContent());
+            System.out.println("replies:");
+            List<Post> replyList = fetchPost.getReplies();
+            if (replyList == null) {
+                System.out.println("No replies");
+            } else {
+                for (Post reply : replyList) {
+                    System.out.println("\treply ID: " + reply.getPostId());
+                    System.out.println("\treply content: " + reply.getPostContent());
+                }
             }
         }
 
+        scanner.close();
 
 
 
