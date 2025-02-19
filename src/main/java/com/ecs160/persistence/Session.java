@@ -157,10 +157,11 @@ public class Session {
                 } catch (IllegalAccessException e) {
                     System.out.println("Can't access " + fieldName + "'s value");
                     e.printStackTrace();
+                    return null;
                 }
             }
         }
-        if(map == null) {
+        if(map == null || map.isEmpty()) {
             System.out.println("Nothing retrieved from Redis database");
             return null;
         }

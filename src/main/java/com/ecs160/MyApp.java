@@ -32,9 +32,6 @@ public class MyApp {
 
         session.persistAll();
 
-        // Get all keys from the Redis database
-        Set<String> keys = session.jedisSession.keys("*");
-
         Scanner scanner = new Scanner(System.in);
 
         while (true) {
@@ -44,10 +41,12 @@ public class MyApp {
                 id = Integer.parseInt(scanner.nextLine());
             } catch (NumberFormatException e) {
                 System.out.println("Invalid input. Please enter a valid integer.");
+                continue;
             }
 
             if (id == -1){
                 System.out.println("provide a valid id");
+                continue;
             }
 
             if (id==0){
@@ -56,30 +55,13 @@ public class MyApp {
             }
 
 
-            // iterate over all keys in reddis to make sure it exists.
-            boolean exists = false;
-            for (String key : keys) {
-                int key_int = -1;
-                try {
-                    key_int = Integer.parseInt(key);
-                } catch (NumberFormatException e) {
-                    System.out.println("could not convert key to int");
-                }
-                if (id == key_int){
-                    exists = true;
-                }
-            }
-
-            if (!exists){
-                System.out.println("id "+id+" does not exist in the database");
-                continue;
-            }
-
             Post fetchPost = new Post();
             fetchPost.setPostId(id);
-            session.load(fetchPost);
+            Object statusPost = session.load(fetchPost);
 
-            if (fetchPost.getPostId()==null){
+            //statusPost is used to check if post data was loaded into fetchPost successfully.
+            //Use fetchPost tp print out its content
+            if(statusPost == null) {
                 System.out.println("the load function returned a null object");
                 continue;
             }
