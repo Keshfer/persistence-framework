@@ -15,7 +15,7 @@ import redis.clients.jedis.Jedis;
 // Assumption - only support int/long/and string values
 public class Session {
 
-    private Jedis jedisSession;
+    public Jedis jedisSession;
     private List<Object> objList = new ArrayList<>(); //List
     public Session() {
         jedisSession = new Jedis("localhost", 6379);
